@@ -1,0 +1,87 @@
+name: Generate SARIF with Semgrep and upload it to Defect Dojo
+description: |
+  Utilizes Semgrep to generate a SARIF report. The report is archived and uploaded to Defect Dojo.
+
+  Uses https://github.com/kronostechnologies/standards/blob/master/bin/semgrep.sh to normalize results.
+
+inputs:
+  defectdojo-engagement:
+    description: "DefectDojo Engagement name or id"
+    required: false
+    default: ""
+  defectdojo-publish:
+    description: "Publish sarif report to Defect Dojo"
+    required: false
+    default: "false"
+  defectdojo-token:
+    description: "DefectDojo Token"
+    required: false
+    default: ""
+  defectdojo-url:
+    description: "DefectDojo URL"
+    required: false
+    default: ""
+  language:
+    description: The language check to run. Can be one of [ kt, ts, py ].
+    required: true
+  report-name:
+    description: Override the default report name. This is useful for workflows that output multiple Semgrep reports.
+    required: false
+    default: "semgrep"
+  report-retention-days:
+    description: Duration in days to preserve reports.
+    required: true
+    default: "5"
+  working-directory:
+    description: Relative path under $GITHUB_WORKSPACE where the root project is located.
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Action context
+      id: context
+      shell: bash
+      run: |
+        working_directory=$(realpath ${{ inputs.working-directory }})
+        echo "::set-output name=working-directory::$working_directory"
+        echo "::set-output name=sarif-file::build/sast/${{ inputs.report-name }}.sarif"
+
+    - name: Semgrep
+      working-directory: ${{ steps.context.outputs.working-directory }}
+      shell: bash
+      run: |
+        ${{ github.action_path }}/files/semgrep.bash \
+          -l "${{ inputs.language }}" \
+          -o "${{ steps.context.outputs.sarif-file }}"
+
+        result=$?
+        if [ $result -ne 0 ]; then
+          exit $result
+        fi
+
+    - uses: actions/upload-artifact@v2
+      if: "!cancelled()"
+      with:
+        name: ${{ inputs.report-name }}.sarif
+        path: ${{ steps.context.outputs.working-directory }}/${{ steps.context.outputs.sarif-file }}
+        retention-days: ${{ inputs.report-retention-days }}
+
+    - name: Publish report
+      id: import-scan
+      uses: ivanamat/defectdojo-import-scan@v1
+      if: "!cancelled() && inputs.defectdojo-publish == 'true'"
+      with:
+        defectdojo_url: ${{ inputs.defectdojo-url }}
+        engagement: ${{ inputs.defectdojo-engagement }}
+        file: ${{ inputs.working-directory }}/${{ steps.context.outputs.sarif-file }}
+        scan_type: SARIF
+        token: ${{ inputs.defectdojo-token }}
+
+    - name: Defect Dojo import result
+      if: "!cancelled() && inputs.defectdojo-publish == 'true'"
+      shell: bash
+      run: |
+        set -e
+        printf '%s\n' '${{ steps.import-scan.outputs.response }}'
