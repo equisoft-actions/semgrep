@@ -61,7 +61,7 @@ runs:
           exit $result
         fi
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: "!cancelled()"
       with:
         name: ${{ inputs.report-name }}.sarif
