@@ -53,6 +53,7 @@ runs:
         retention-days: ${{ inputs.report-retention-days }}
 
     - name: Publish report
+      if: "!cancelled()"
       uses: github/codeql-action/upload-sarif@v2
       with:
         category: ${{ inputs.report-name }}
