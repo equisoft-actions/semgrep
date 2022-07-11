@@ -1,26 +1,10 @@
-name: Generate SARIF with Semgrep and upload it to Defect Dojo
+name: Generate SARIF with Semgrep and upload it to Github
 description: |
-  Utilizes Semgrep to generate a SARIF report. The report is archived and uploaded to Defect Dojo.
+  Utilizes Semgrep to generate a SARIF report. The report is archived and uploaded to Github.
 
   Uses https://github.com/kronostechnologies/standards/blob/master/bin/semgrep.sh to normalize results.
 
 inputs:
-  defectdojo-engagement:
-    description: "DefectDojo Engagement name or id"
-    required: false
-    default: ""
-  defectdojo-publish:
-    description: "Publish sarif report to Defect Dojo"
-    required: false
-    default: "false"
-  defectdojo-token:
-    description: "DefectDojo Token"
-    required: false
-    default: ""
-  defectdojo-url:
-    description: "DefectDojo URL"
-    required: false
-    default: ""
   language:
     description: The language check to run. Can be one of [ kt, ts, py ].
     required: true
@@ -69,19 +53,7 @@ runs:
         retention-days: ${{ inputs.report-retention-days }}
 
     - name: Publish report
-      id: import-scan
-      uses: ivanamat/defectdojo-import-scan@v1
-      if: "!cancelled() && inputs.defectdojo-publish == 'true'"
+      uses: github/codeql-action/upload-sarif@v2
       with:
-        defectdojo_url: ${{ inputs.defectdojo-url }}
-        engagement: ${{ inputs.defectdojo-engagement }}
-        file: ${{ inputs.working-directory }}/${{ steps.context.outputs.sarif-file }}
-        scan_type: SARIF
-        token: ${{ inputs.defectdojo-token }}
-
-    - name: Defect Dojo import result
-      if: "!cancelled() && inputs.defectdojo-publish == 'true'"
-      shell: bash
-      run: |
-        set -e
-        printf '%s\n' '${{ steps.import-scan.outputs.response }}'
+        category: ${{ inputs.report-name }}
+        sarif_file: ${{ inputs.working-directory }}/${{ steps.context.outputs.sarif-file }}
