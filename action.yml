@@ -29,8 +29,8 @@ runs:
       shell: bash
       run: |
         working_directory=$(realpath ${{ inputs.working-directory }})
-        echo "::set-output name=working-directory::$working_directory"
-        echo "::set-output name=sarif-file::build/sast/${{ inputs.report-name }}.sarif"
+        echo "working-directory=$working_directory" >> $GITHUB_OUTPUT
+        echo "sarif-file=build/sast/${{ inputs.report-name }}.sarif" >> $GITHUB_OUTPUT
 
     - name: Semgrep
       working-directory: ${{ steps.context.outputs.working-directory }}
