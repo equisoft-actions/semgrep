@@ -45,7 +45,7 @@ runs:
           exit $result
         fi
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: "!cancelled()"
       with:
         name: ${{ inputs.report-name }}.sarif
@@ -54,7 +54,7 @@ runs:
 
     - name: Publish report
       if: "!cancelled()"
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       with:
         category: ${{ inputs.report-name }}
         sarif_file: ${{ inputs.working-directory }}/${{ steps.context.outputs.sarif-file }}
